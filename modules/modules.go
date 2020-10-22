@@ -15,17 +15,16 @@
 package modules
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
 )
 
+//nolint:gochecknoglobals
 var (
-	modules   = make(map[string]ModuleInfo)
+	modules   = make(map[string]Module)
 	modulesMu sync.RWMutex
 )
 
@@ -145,7 +144,8 @@ func RegisterModule(instance Module) {
 	if mod.New == nil {
 		panic("missing ModuleInfo.New")
 	}
-	if val := mod.New(); val == nil {
+	val := mod.New()
+	if val == nil {
 		panic("ModuleInfo.New must return a non-nil module instance")
 	}
 
@@ -155,16 +155,16 @@ func RegisterModule(instance Module) {
 	if _, ok := modules[string(mod.ID)]; ok {
 		panic(fmt.Sprintf("module already registered: %s", mod.ID))
 	}
-	modules[string(mod.ID)] = mod
+	modules[string(mod.ID)] = val
 }
 
-// GetModule returns module information from its ID (full name).
-func GetModule(name string) (ModuleInfo, error) {
+// GetModule returns the module given its ID (full name).
+func GetModule(name string) (Module, error) {
 	modulesMu.RLock()
 	defer modulesMu.RUnlock()
 	m, ok := modules[name]
 	if !ok {
-		return ModuleInfo{}, fmt.Errorf("module not registered: %s", name)
+		return nil, fmt.Errorf("module not registered: %s", name)
 	}
 	return m, nil
 }
@@ -199,7 +199,7 @@ func GetModuleID(instance interface{}) string {
 //
 // Because modules are registered to a map under the hood, the
 // returned slice will be sorted to keep it deterministic.
-func GetModules(scope string) []ModuleInfo {
+func GetModules(scope string) []Module {
 	modulesMu.RLock()
 	defer modulesMu.RUnlock()
 
@@ -211,7 +211,7 @@ func GetModules(scope string) []ModuleInfo {
 		scopeParts = []string{}
 	}
 
-	var mods []ModuleInfo
+	var mods []Module
 iterateModules:
 	for id, m := range modules {
 		modParts := strings.Split(id, ".")
@@ -233,7 +233,7 @@ iterateModules:
 
 	// make return value deterministic
 	sort.Slice(mods, func(i, j int) bool {
-		return mods[i].ID < mods[j].ID
+		return mods[i].K6Module().ID < mods[j].K6Module().ID
 	})
 
 	return mods
@@ -258,30 +258,30 @@ func Modules() []string {
 // getModuleNameInline loads the string value from raw of moduleNameKey,
 // where raw must be a JSON encoding of a map. It returns that value,
 // along with the result of removing that key from raw.
-func getModuleNameInline(moduleNameKey string, raw json.RawMessage) (string, json.RawMessage, error) {
-	var tmp map[string]interface{}
-	err := json.Unmarshal(raw, &tmp)
-	if err != nil {
-		return "", nil, err
-	}
+// func getModuleNameInline(moduleNameKey string, raw json.RawMessage) (string, json.RawMessage, error) {
+// 	var tmp map[string]interface{}
+// 	err := json.Unmarshal(raw, &tmp)
+// 	if err != nil {
+// 		return "", nil, err
+// 	}
 
-	moduleName, ok := tmp[moduleNameKey].(string)
-	if !ok || moduleName == "" {
-		return "", nil, fmt.Errorf("module name not specified with key '%s' in %+v", moduleNameKey, tmp)
-	}
+// 	moduleName, ok := tmp[moduleNameKey].(string)
+// 	if !ok || moduleName == "" {
+// 		return "", nil, fmt.Errorf("module name not specified with key '%s' in %+v", moduleNameKey, tmp)
+// 	}
 
-	// remove key from the object, otherwise decoding it later
-	// will yield an error because the struct won't recognize it
-	// (this is only needed because we strictly enforce that
-	// all keys are recognized when loading modules)
-	delete(tmp, moduleNameKey)
-	result, err := json.Marshal(tmp)
-	if err != nil {
-		return "", nil, fmt.Errorf("re-encoding module configuration: %v", err)
-	}
+// 	// remove key from the object, otherwise decoding it later
+// 	// will yield an error because the struct won't recognize it
+// 	// (this is only needed because we strictly enforce that
+// 	// all keys are recognized when loading modules)
+// 	delete(tmp, moduleNameKey)
+// 	result, err := json.Marshal(tmp)
+// 	if err != nil {
+// 		return "", nil, fmt.Errorf("re-encoding module configuration: %v", err)
+// 	}
 
-	return moduleName, result, nil
-}
+// 	return moduleName, result, nil
+// }
 
 // Provisioner is implemented by modules which may need to perform
 // some additional "setup" steps immediately after being loaded.
@@ -338,16 +338,16 @@ type CleanerUpper interface {
 // if any of the fields are unrecognized. Useful when decoding
 // module configurations, where you want to be more sure they're
 // correct.
-func strictUnmarshalJSON(data []byte, v interface{}) error {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	return dec.Decode(v)
-}
+// func strictUnmarshalJSON(data []byte, v interface{}) error {
+// 	dec := json.NewDecoder(bytes.NewReader(data))
+// 	dec.DisallowUnknownFields()
+// 	return dec.Decode(v)
+// }
 
 // isJSONRawMessage returns true if the type is encoding/json.RawMessage.
-func isJSONRawMessage(typ reflect.Type) bool {
-	return typ.PkgPath() == "encoding/json" && typ.Name() == "RawMessage"
-}
+// func isJSONRawMessage(typ reflect.Type) bool {
+// 	return typ.PkgPath() == "encoding/json" && typ.Name() == "RawMessage"
+// }
 
 // isModuleMapType returns true if the type is map[string]json.RawMessage.
 // It assumes that the string key is the module name, but this is not
@@ -355,8 +355,8 @@ func isJSONRawMessage(typ reflect.Type) bool {
 // also the struct tag where this type appears must NOT define an inline_key
 // attribute, which would mean that the module names appear inline with the
 // values, not in the key.
-func isModuleMapType(typ reflect.Type) bool {
-	return typ.Kind() == reflect.Map &&
-		typ.Key().Kind() == reflect.String &&
-		isJSONRawMessage(typ.Elem())
-}
+// func isModuleMapType(typ reflect.Type) bool {
+// 	return typ.Kind() == reflect.Map &&
+// 		typ.Key().Kind() == reflect.String &&
+// 		isJSONRawMessage(typ.Elem())
+// }
