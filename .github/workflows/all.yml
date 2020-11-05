@@ -210,9 +210,7 @@ jobs:
             docker run $DOCKER_IMAGE_ID resume --help
       - name: Publish Docker CI
         run: |
-          VERSION_CI="${VERSION_CI#v}"
           echo "DOCKER_IMAGE_ID=$DOCKER_IMAGE_ID"
-          echo "VERSION_CI=$VERSION_CI"
           # Log into GHCR
           echo "${{ secrets.CR_PAT }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
           docker tag "$DOCKER_IMAGE_ID" "ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI"
@@ -226,18 +224,10 @@ jobs:
       VERSION: ${{ needs.configure.outputs.version }}
       VERSION_CI: ${{ needs.configure.outputs.version_ci }}
     steps:
-      - name: Configuring variables
-        run: |
-          VERSION="${VERSION#v}"
-          VERSION_CI="${VERSION_CI#v}"
-          echo "REF=${{ github.ref }}"
-          echo "DOCKER_IMAGE_ID=$DOCKER_IMAGE_ID"
-          echo "VERSION=$VERSION"
-          echo "VERSION_CI=$VERSION_CI"
       - name: Publish Container Registries
         run: |
           echo 'Publish Docker'
-          skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} \ 
+          skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} \
                       --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_PASS }} \
                       docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI \
                       docker://$DOCKER_IMAGE_ID:$VERSION
@@ -253,11 +243,11 @@ jobs:
             echo 'Publish Docker (latest)'
             skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} \
                         --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_PASS }} \
-                        docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI \ 
+                        docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI \
                         docker://$DOCKER_IMAGE_ID:latest
 
             echo 'Publish GHCR (latest)'
-            skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} \ 
+            skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} \
                         --dest-creds ${{ github.actor }}:${{ secrets.CR_PAT }} \
                         docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI \
                         docker://ghcr.io/$DOCKER_IMAGE_ID:latest
