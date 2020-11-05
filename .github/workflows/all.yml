@@ -234,18 +234,17 @@ jobs:
           echo "DOCKER_IMAGE_ID=$DOCKER_IMAGE_ID"
           echo "VERSION=$VERSION"
           echo "VERSION_CI=$VERSION_CI"
-      - name: Publish Docker
+      - name: Publish Container Registries
         run: |
+          echo 'Publish Docker'
           skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_PASS }} docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI docker://$DOCKER_IMAGE_ID:$VERSION
-          # We also want to tag the latest stable version as latest
-          if [[ "$VERSION" != "master" ]] && [[ ! "$VERSION" =~ (RC|rc) ]]; then
-            skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_PASS }} docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI docker://$DOCKER_IMAGE_ID:latest
-          fi
-      - name: Publish GHCR
-        run: |
+          echo 'Publish GHCR'
           skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} --dest-creds ${{ github.actor }}:${{ secrets.CR_PAT }} docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI docker://ghcr.io/$DOCKER_IMAGE_ID:$VERSION
           # We also want to tag the latest stable version as latest
           if [[ "$VERSION" != "master" ]] && [[ ! "$VERSION" =~ (RC|rc) ]]; then
+            echo 'Publish Docker (latest)'
+            skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_PASS }} docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI docker://$DOCKER_IMAGE_ID:latest
+            echo 'Publish GHCR (latest)'
             skopeo copy --src-creds ${{ github.actor }}:${{ secrets.CR_PAT }} --dest-creds ${{ github.actor }}:${{ secrets.CR_PAT }} docker://ghcr.io/$DOCKER_IMAGE_ID/ci:$VERSION_CI docker://ghcr.io/$DOCKER_IMAGE_ID:latest
           fi
 
