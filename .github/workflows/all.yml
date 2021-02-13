@@ -117,19 +117,6 @@ jobs:
 
 
           done
-          grep -h -v "^mode:" *.coverage >> coverage.txt
-          rm -f *.coverage
-      - name: Upload coverage to Codecov
-        run: |
-          platform="${{ matrix.platform }}"
-          bash <(curl --fail -s https://codecov.io/bash) -F "${platform%%-*}"
-      - name: Generate coverage HTML report
-        run: go tool cover -html=coverage.txt -o coverage.html
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-coverage-report-${{ matrix.platform }}
-          path: coverage.html
 
   configure:
     runs-on: ubuntu-latest
