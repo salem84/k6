@@ -232,6 +232,7 @@ jobs:
             docker push "ghcr.io/$DOCKER_IMAGE_ID:latest"
           fi
 
+          echo "DOCKER_IMAGE_ID=giorgiolasala/k6" >> $GITHUB_ENV
           # Log into Docker Hub Registry
           echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
           docker tag "$DOCKER_IMAGE_ID" "$DOCKER_IMAGE_ID:$VERSION"
