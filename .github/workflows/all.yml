@@ -217,7 +217,7 @@ jobs:
 
         run: |
           # Log into GitHub Container Registry
-          echo "Publish GHCR ($DOCKER_IMAGE_ID : $VERSION )"
+          echo "Publish GHCR ($DOCKER_IMAGE_ID:$VERSION )"
 
           echo "${{ secrets.CR_PAT }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
           docker tag "$DOCKER_IMAGE_ID" "ghcr.io/$DOCKER_IMAGE_ID:$VERSION"
@@ -229,8 +229,7 @@ jobs:
             docker push "ghcr.io/$DOCKER_IMAGE_ID:latest"
           fi
 
-          export DOCKER_IMAGE_ID=giorgiolasala/k6
-          echo "Publish Docker ($DOCKER_IMAGE_ID :$VERSION)"
+          echo "Publish Docker ($DOCKER_IMAGE_ID:$VERSION)"
 
           # Log into Docker Hub Registry
           echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
