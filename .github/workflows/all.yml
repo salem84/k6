@@ -214,9 +214,7 @@ jobs:
             docker run $DOCKER_IMAGE_ID resume --help
 
       - name: Publish
-        if: |
-          github.ref == 'refs/heads/master' ||
-          startsWith(github.ref, 'refs/tags/v')
+
         run: |
           # Log into GitHub Container Registry
           echo 'Publish GHCR ($DOCKER_IMAGE_ID:$VERSION)'
