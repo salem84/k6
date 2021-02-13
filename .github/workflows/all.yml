@@ -81,7 +81,6 @@ jobs:
             args[1]="1"
             export GOMAXPROCS=1
           fi
-          go test "${args[@]}" -timeout 800s ./...
 
   test-cov:
     strategy:
@@ -116,7 +115,7 @@ jobs:
                   list=$(echo "$list" | cut -f1 -d ' ' | sort -u | paste -sd, -)
               fi
 
-              go test "${args[@]}" -timeout 800s --coverpkg="$list" -coverprofile=$(echo $pkg | tr / -).coverage $pkg
+
           done
           grep -h -v "^mode:" *.coverage >> coverage.txt
           rm -f *.coverage
